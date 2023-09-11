@@ -1,0 +1,2 @@
+create the dot env
+first configure the hassura action
