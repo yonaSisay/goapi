@@ -31,6 +31,9 @@ func GetToken(userId string, role string ) (string, error){
 			"x-hasura-user-id":       userId,           // The user ID
 			"x-hasura-role":          role,              // The current role for the user
 		},	
+		"metadata": map[string]interface{}{
+			"userId": userId,
+		},
 	}
 	tokenExpiration := time.Now().Add(time.Hour * 48).Unix()
 	token, err := createJWTToken(payload, os.Getenv("JWT_SECRET"),tokenExpiration )

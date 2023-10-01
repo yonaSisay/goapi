@@ -1,2 +1,1 @@
-create the dot env
-first configure the hassura action
+add the password encryption

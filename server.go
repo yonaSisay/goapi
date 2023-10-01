@@ -1,13 +1,14 @@
 package main
 import (
+	"goapi/utilService"
 	"log"
 "fmt"
-	// "gilab.com/progrmaticreviwes/golang-gin-poc/controller"
-	// "gilab.com/progrmaticreviwes/golang-gin-poc/middlewares"
+	"os"
 	"goapi/controller"
 	"goapi/middlewares"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	// "github.com/hasura/go-graphql-client"
 )
 
 func init() {
@@ -19,6 +20,11 @@ func init() {
 }
 
 func main() {
+
+	fmt.Println("admin_secret", os.Getenv("HASURA_GRAPHQL_ADMIN_SECRET"))
+	client :=  utilService.Client()
+	log.Print(client)
+	fmt.Println("newClient object", os.Getenv("HASURA_GRAPHQL_ENDPOINT"))
 	// create server
 	server := gin.New()
 	// define middlewares
@@ -28,6 +34,8 @@ func main() {
 
 	// define routes
 	server.POST("/signup", controller.Signup)
+	server.POST("/login", controller.Login)
+	server.POST("/uploadImage", controller.UploadImage)
 
 	server.Run(":7000")
 }	
