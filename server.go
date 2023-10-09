@@ -35,6 +35,7 @@ func main() {
 	// define routes
 	server.POST("/signup", controller.Signup)
 	server.POST("/login", controller.Login)
+	server.POST("/updateUser",controller.UpdateUser)
 	server.POST("/uploadImage", controller.UploadImage)
 
 	server.Run(":7000")

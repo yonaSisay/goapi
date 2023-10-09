@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"goapi/utilService"
 	"github.com/gin-gonic/gin"
-	"strconv"
-
 )
 
 
@@ -51,7 +49,7 @@ func Login( ctx *gin.Context){
 	
 	var query struct {
 		Users[] struct {
-			ID     int `json:"id"`
+			ID     string `json:"id"`
 			Email string `json:"email"`
 			Password string `json:"password"`
 			Role string `json:"role"`
@@ -72,7 +70,7 @@ func Login( ctx *gin.Context){
 	// 4.check if the password is correct if it is send token
 	if len(query.Users) > 0  && utilService.ComparePasswords(query.Users[0].Password, input.Password){
 		var response AuthResponse
-		response.ID = strconv.Itoa(query.Users[0].ID)
+		response.ID = query.Users[0].ID
 		response.Role = query.Users[0].Role
 		sendToken(ctx, query.Users[0].Role, response)
 		return
@@ -87,7 +85,8 @@ func Login( ctx *gin.Context){
 func Signup(ctx *gin.Context){
 	// get the user input from the request body
 	type inputUser struct {
-		Name string `json:"name"`
+		first_name string `json:"first_name"`
+		last_name string `json:"last_name"`
 		Email string `json:"email"`
 		Password string `json:"password"`
 	}
@@ -100,14 +99,14 @@ func Signup(ctx *gin.Context){
 	}
 
 	fmt.Printf(newUser.Email)
-	fmt.Printf(newUser.Name)
+	fmt.Printf(newUser.first_name)
 	fmt.Printf(newUser.Password)
 
 	// define the graphql mutation string
 	var mutation struct {
 		InsertUsers struct {
 			Returning []struct {
-				ID int `json:"id"`
+				ID string `json:"id"`
 			} `json:"returning"`
 		} `graphql:"insert_users(objects: $objects)"`
 	}
@@ -127,7 +126,8 @@ func Signup(ctx *gin.Context){
 	variables := map[string]interface{}{
 		"objects": []users_insert_input{
 			{
-				"name":     newUser.Name,
+				"first_name":     newUser.first_name,
+				"last_name":newUser.last_name,
 				"email":    newUser.Email,
 				"password": password,
 			},
@@ -146,6 +146,88 @@ func Signup(ctx *gin.Context){
 
 	// if data stored successfully call sendtoken function with response object
 	var response AuthResponse
-	response.ID = strconv.Itoa(mutation.InsertUsers.Returning[0].ID)
+	response.ID = mutation.InsertUsers.Returning[0].ID
 	sendToken(ctx, "user", response)
 }
+
+
+func UpdateUser(ctx *gin.Context){	
+	//1. Get user data from request body
+	var inputUser struct {
+		
+		Email string `json:"email"`
+		Password string `json:"password"`
+		NewPassword string `json:"newPassword"`
+	
+	}
+	
+	if err := ctx.ShouldBindJSON(&inputUser); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var query struct {
+		Users[] struct {
+			ID          string `json:"id"`
+			Password string `json:"password"` 
+			Role string `json:"role"`
+		
+		} `graphql:"users(where: {email: {_eq: $email}})"`
+	}
+
+	
+	variables := map[string]interface{}{
+		"email":  inputUser.Email,
+	}
+	
+	err := utilService.Client().Query(context.Background(), &query, variables)
+	if err != nil {
+		fmt.Println(err.Error())
+		ctx.JSON(400, gin.H{"error Meassag": "Something went wrong"})
+		return
+	}
+
+	
+	if len(query.Users) > 0 && utilService.ComparePasswords(query.Users[0].Password, inputUser.Password) {
+	
+		var newPassword = query.Users[0].Password
+	
+		if(inputUser.NewPassword != ""){
+			password, err4 := utilService.HashPassword(inputUser.NewPassword)
+			newPassword = password
+			fmt.Println(password)
+			if err4 != nil {
+				ctx.JSON(400, gin.H{"error": err4.Error()})
+				return
+			}
+		}
+	
+		var mutation struct {
+			UpdateUsers struct {
+				Returning []struct{
+					ID string `json:"id"`
+					Role string `json:"role"`
+					Email string `json:"email"`
+				} `json:"returning"`
+			} `graphql:"update_users(where: {email: {_eq: $email}}, _set: {password: $password})"`
+		}
+		
+		variables2 := map[string]interface{}{
+			"password":  newPassword,
+			"email":  inputUser.Email,
+		}
+		
+		err5 := utilService.Client().Mutate(context.Background(), &mutation, variables2)
+		if err5 != nil {
+			ctx.JSON(400, gin.H{"error": err5.Error()})
+			return
+		}
+	
+		var response AuthResponse
+		response.Role = mutation.UpdateUsers.Returning[0].Role
+		response.ID = mutation.UpdateUsers.Returning[0].ID
+		sendToken(ctx, query.Users[0].Role, response)
+		return
+	}
+	ctx.JSON(400, gin.H{"message": "Invalid credentials"})
+}	

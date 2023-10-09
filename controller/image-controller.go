@@ -58,4 +58,3 @@ func UploadImage(ctx *gin.Context) {
     // 4. Send the URLs to the client
     ctx.JSON(200, gin.H{"urls": urls})
 }
-
