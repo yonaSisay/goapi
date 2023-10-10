@@ -33,9 +33,9 @@ func sendToken(ctx *gin.Context, role string, response AuthResponse){
 func Login( ctx *gin.Context){
 	//1.bind the json data to the struct
 	var input struct {
-		Email string `json: "email"`
-		Password string `json: "password"`
-		
+		Email string `json:"email"`
+		Password string `json:"password"`
+	
 	}
 	
 	if err := ctx.ShouldBindJSON(&input); err != nil {
@@ -85,8 +85,8 @@ func Login( ctx *gin.Context){
 func Signup(ctx *gin.Context){
 	// get the user input from the request body
 	type inputUser struct {
-		first_name string `json:"first_name"`
-		last_name string `json:"last_name"`
+		FirstName string `json:"first_name"`
+		LastName string `json:"last_name"`
 		Email string `json:"email"`
 		Password string `json:"password"`
 	}
@@ -99,7 +99,7 @@ func Signup(ctx *gin.Context){
 	}
 
 	fmt.Printf(newUser.Email)
-	fmt.Printf(newUser.first_name)
+	fmt.Printf(newUser.FirstName)
 	fmt.Printf(newUser.Password)
 
 	// define the graphql mutation string
@@ -126,13 +126,14 @@ func Signup(ctx *gin.Context){
 	variables := map[string]interface{}{
 		"objects": []users_insert_input{
 			{
-				"first_name":     newUser.first_name,
-				"last_name":newUser.last_name,
+				"first_name":newUser.FirstName,
+				"last_name":newUser.LastName,
 				"email":    newUser.Email,
 				"password": password,
 			},
 		},
 	}
+	
 	// execute the request 
 	client := utilService.Client();
 
